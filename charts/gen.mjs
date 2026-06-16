@@ -138,7 +138,7 @@ function startupChart() {
   g += poly(emapReady.map(([x, y]) => [X(x), Y(y)]), C.emap, C.emapFill)
   const mb = (Number(emersion1M.bytes) / 1e6).toFixed(0)
   g += `<text x="${X(1000000) - 6}" y="${Y(Number(emersion1M.ready_ms)) - 10}" fill="${C.emersion}" font-family="${FONT}" font-size="11.5" text-anchor="end">emersion: ${(Number(emersion1M.ready_ms) / 1000).toFixed(1)} s · 1M msgs · ${mb} MB</text>`
-  g += `<text x="${X(100000)}" y="${Y(0.7) - 10}" fill="${C.emap}" font-family="${FONT}" font-size="11.5" text-anchor="middle">emap-go: ~1 ms · 0 msgs · 0.5 KB (flat)</text>`
+  g += `<text x="${M.l + PW / 2}" y="${M.t + PH - 14}" fill="${C.emap}" font-family="${FONT}" font-size="11.5" text-anchor="middle">emap-go: ~1 ms · 0 msgs · 0.5 KB (flat)</text>`
   g += legend([{ label: 'emap-go (UIDNEXT skip)', color: C.emap }, { label: 'emersion (naive mailbox sync)', color: C.emersion }])
   g += logoTag()
   return wrap(g)
