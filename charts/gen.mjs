@@ -12,6 +12,11 @@ import { dirname, join } from 'node:path'
 const here = dirname(fileURLToPath(import.meta.url))
 const repo = join(here, '..')
 
+// status403 logo, embedded as a data URI so it renders even when the SVG is
+// loaded via <img> (external resource refs are blocked in that context).
+const LOGO_B64 = readFileSync(join(here, 'logo.png')).toString('base64')
+const LOGO_RATIO = 5.763 // logo.png aspect ratio (width / height)
+
 function csv(path) {
   const [head, ...rows] = readFileSync(path, 'utf8').trim().split('\n')
   const cols = head.split(',')
@@ -49,7 +54,7 @@ function frame(title, subtitle) {
 function legend(items) {
   let x = M.l, y = H - 16, out = ''
   for (const it of items) {
-    out += `<line x1="${x}" y1="${y - 4}" x2="${x + 26}" y2="${y - 4}" stroke="${it.color}" stroke-width="3"/>`
+    out += `<line x1="${x}" y1="${y - 4}" x2="${x + 26}" y2="${y - 4}" stroke="${it.color}" stroke-width="3"${it.dash ? ' stroke-dasharray="6 4"' : ''}/>`
     out += `<text x="${x + 33}" y="${y}" fill="${C.sub}" font-family="${FONT}" font-size="12.5">${esc(it.label)}</text>`
     x += 40 + it.label.length * 7.4 + 24
   }
@@ -65,6 +70,14 @@ function poly(pts, color, fill) {
 }
 const wrap = inner => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">\n${inner}\n</svg>\n`
 
+// small brand mark, bottom-right by default
+function logoTag(yOverride) {
+  const w = 104, h = w / LOGO_RATIO
+  const x = W - w - 16
+  const y = yOverride != null ? yOverride : H - h - 14
+  return `<image href="data:image/png;base64,${LOGO_B64}" x="${x}" y="${y.toFixed(1)}" width="${w}" height="${h.toFixed(1)}" opacity="0.95"/>`
+}
+
 function connections() {
   const X = v => lin(v, 0, 2000, M.l, M.l + PW), Y = v => lin(v, 0, 2000, M.t + PH, M.t)
   let g = frame('Open IMAP connections vs. number of task-watchers',
@@ -77,12 +90,13 @@ function connections() {
   g += `<text x="${M.l + PW / 2}" y="${H - 38}" fill="${C.sub}" font-family="${FONT}" font-size="12" text-anchor="middle">task-watchers (N)</text>`
   g += `<text transform="translate(20,${M.t + PH / 2}) rotate(-90)" fill="${C.sub}" font-family="${FONT}" font-size="12" text-anchor="middle">open connections</text>`
   g += `<line x1="${M.l}" y1="${Y(15)}" x2="${M.l + PW}" y2="${Y(15)}" stroke="${C.cap}" stroke-width="1.3" stroke-dasharray="6 4"/>`
-  g += `<text x="${M.l + 8}" y="${Y(15) - 8}" fill="${C.cap}" font-family="${FONT}" font-size="11" text-anchor="start">Gmail per-account cap = 15  →  emersion breaks at N=16</text>`
+  g += `<text x="${M.l + 12}" y="${M.t + 52}" fill="${C.cap}" font-family="${FONT}" font-size="11" text-anchor="start">Gmail per-account cap = 15 — emersion breaks at N=16</text>`
   g += poly(emersionConns.map(([x, y]) => [X(x), Y(y)]), C.emersion)
   g += poly(emapConns.map(([x, y]) => [X(x), Y(y)]), C.emap)
   g += `<text x="${X(1550)}" y="${Y(1550) - 12}" fill="${C.emersion}" font-family="${FONT}" font-size="11.5" text-anchor="end">emersion: N connections</text>`
   g += `<text x="${M.l + 12}" y="${M.t + 34}" fill="${C.emap}" font-family="${FONT}" font-size="11.5" text-anchor="start">emap-go: 1 connection — flat along the bottom</text>`
-  g += legend([{ label: 'emap-go (pooled)', color: C.emap }, { label: 'emersion (one client per task)', color: C.emersion }])
+  g += legend([{ label: 'emap-go (pooled)', color: C.emap }, { label: 'emersion (one client per task)', color: C.emersion }, { label: 'Gmail cap (N=15)', color: C.cap, dash: true }])
+  g += logoTag()
   return wrap(g)
 }
 function memory() {
@@ -101,6 +115,7 @@ function memory() {
   g += `<text x="${X(2000) - 6}" y="${Y(emersionRss.at(-1)[1]) + 4}" fill="${C.emersion}" font-family="${FONT}" font-size="11.5" text-anchor="end">emersion: ~${eM} MB</text>`
   g += `<text x="${X(2000) - 6}" y="${Y(emapRss.at(-1)[1]) - 10}" fill="${C.emap}" font-family="${FONT}" font-size="11.5" text-anchor="end">emap-go: ~${aM} MB</text>`
   g += legend([{ label: 'emap-go (pooled)', color: C.emap }, { label: 'emersion (one client per task)', color: C.emersion }])
+  g += logoTag()
   return wrap(g)
 }
 function startupChart() {
@@ -125,6 +140,7 @@ function startupChart() {
   g += `<text x="${X(1000000) - 6}" y="${Y(Number(emersion1M.ready_ms)) - 10}" fill="${C.emersion}" font-family="${FONT}" font-size="11.5" text-anchor="end">emersion: ${(Number(emersion1M.ready_ms) / 1000).toFixed(1)} s · 1M msgs · ${mb} MB</text>`
   g += `<text x="${X(100000)}" y="${Y(0.7) - 10}" fill="${C.emap}" font-family="${FONT}" font-size="11.5" text-anchor="middle">emap-go: ~1 ms · 0 msgs · 0.5 KB (flat)</text>`
   g += legend([{ label: 'emap-go (UIDNEXT skip)', color: C.emap }, { label: 'emersion (naive mailbox sync)', color: C.emersion }])
+  g += logoTag()
   return wrap(g)
 }
 function deps() {
@@ -142,6 +158,7 @@ function deps() {
     g += `<text x="${cx}" y="${base + 22}" fill="${C.sub}" font-family="${FONT}" font-size="12.5" text-anchor="middle">${grp.label}</text>`
   }
   g += legend([{ label: 'emap-go (stdlib only, ~1,600 LOC)', color: C.emap }, { label: 'emersion go-imap v2 + imapclient', color: C.emersion }])
+  g += logoTag()
   return wrap(g)
 }
 
