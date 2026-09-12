@@ -10,6 +10,8 @@ Everything runs against a tiny localhost IMAP server included here
 flakiness. You can run the whole thing in under a minute and check the numbers
 yourself.
 
+📖 [Technical write-up](https://status403.com/blog/emap-go-high-fanout-imap?utm_source=github&utm_medium=referral&utm_campaign=emap-technical)
+
 ## What this is (and isn't)
 
 `emap-go` and `emersion/go-imap` are **not the same kind of thing**, and the
